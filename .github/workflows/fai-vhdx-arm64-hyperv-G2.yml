@@ -1,0 +1,75 @@
+name: Build Hyper-V Gen2 AArch64 Image
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  build-image:
+    # Use native ARM64 execution environment
+    runs-on: ubuntu-24.04-arm64
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Install Build and Virtualization Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            fai-server \
+            fai-client \
+            qemu-utils \
+            dosfstools \
+            parted \
+            gdisk
+
+      - name: Setup FAI Environment Configuration
+        run: |
+          # Define a basic FAI configuration space locally
+          mkdir -p fai-config/{class,disk_config,package_config}
+          
+          # 1. Define active building profiles/classes
+          # DEBIAN = OS, ARM64 = Arch, UEFI = Boot type, CLOUD = Cloud-init/Hyper-V hooks
+          echo "DEFAULT DEBIAN ARM64 UEFI CLOUD" > fai-config/class/50-host-classes
+          
+          # 2. Force Gen2 Hyper-V partition mapping (GPT + EFI System Partition)
+          cat << 'EOF' > fai-config/disk_config/HYPERV_GEN2
+          disk_config disk1 fstabkey:uuid align:4M
+          primary /boot/efi  512M   vfat   rw,noatime vfat-mount options:umask=0077,errors=remount-ro
+          primary /          4G-    ext4   rw,noatime
+          EOF
+
+          # 3. Choose the required ARM64 packages
+          cat << 'EOF' > fai-config/package_config/CLOUD
+          PACKAGES install
+          linux-image-cloud-arm64
+          cloud-init
+          cloud-initramfs-growroot
+          openssh-server
+          grub-efi-arm64
+          EOF
+
+      - name: Execute FAI Disk Image Builder
+        run: |
+          # Generate a raw disk file natively mapped to the AArch64 configuration space
+          sudo fai-diskimage \
+            --verbose \
+            --size 10G \
+            --class DEFAULT,DEBIAN,ARM64,UEFI,CLOUD \
+            --config-space ./fai-config \
+            fai-aarch64-raw.img
+
+      - name: Convert Raw Image to Fixed Hyper-V VHD Format
+        run: |
+          # Hyper-V Gen2 supports VHD and VHDX. 
+          # For cross-platform Azure compatibility, convert it to a FIXED-size VHD format.
+          qemu-img convert -f raw -O vpc -o subformat=fixed fai-aarch64-raw.img output-arm64-gen2.vhd
+
+      - name: Upload Finished Image Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: hyperv-aarch64-gen2-vhd
+          path: output-arm64-gen2.vhd
+          if-no-files-found: error
