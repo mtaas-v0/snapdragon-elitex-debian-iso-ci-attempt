@@ -60,7 +60,7 @@ jobs:
           sudo fai-diskimage \
             --verbose \
             --size 10G \
-            --class DEFAULT,DEBIAN,ARM64,UEFI,CLOUD \
+            --class DEFAULT,DEBIAN,ARM64,UEFI,CLOUD,HYPERV_GEN2  \
             --cspace file://${{ github.workspace }}/fai-config \
             output-arm64-gen2.vhdx
 
