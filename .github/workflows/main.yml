@@ -115,13 +115,37 @@ jobs:
           }
           EOF
 
-      - name: Create Bootable ISO Image
+      # NEW CORE STEP: Build a native, physical FAT UEFI boot partition inside the architecture tree
+      - name: Build El Torito EFI Partition Image
         run: |
+          # 1. Instantiate an empty block container image and format it as FAT16
+          sudo dd if=/dev/zero of=iso_root/boot/efi.img bs=1M count=8
+          sudo mkfs.vfat -F 16 iso_root/boot/efi.img
+
+          # 2. Structure the native EFI firmware directory loop inside the image container
+          sudo mmd -i iso_root/boot/efi.img ::/EFI
+          sudo mmd -i iso_root/boot/efi.img ::/EFI/BOOT
+
+          # 3. Generate a standalone AArch64 GRUB binary targeting local paths
+          sudo grub-mkimage -O arm64-efi -p /boot/grub -o bootaa64.efi ext2 part_gpt fat search normal configfile linux
+
+          # 4. Inject the compiled standalone binary straight into the virtual FAT loop
+          sudo mcopy -i iso_root/boot/efi.img bootaa64.efi ::/EFI/BOOT/BOOTAA64.EFI
+
+      - name: Create Bootable UEFI ISO Image
+        run: |
+          # Use specialized parameters to register the virtual image block as a boot entry
           sudo xorriso -as mkisofs \
             -R -J -joliet-long \
+            -iso-level 3 \
+            -append_partition 2 0xef iso_root/boot/efi.img \
+            -partition_cyl_align all \
+            -e --interval:appended_partition_only:2 \
+            -no-emul-boot \
             -o debian-x1elite-minimal.iso \
             iso_root/
-          find *.iso
+            
+          sudo find *.iso
           sudo chmod o+rwx debian-x1elite-minimal.iso
 
       - name: Upload Finished Boot Image Artifact
