@@ -54,11 +54,13 @@ jobs:
       - name: Execute FAI Disk Image Builder
         run: |
           # Generate a raw disk file natively mapped to the AArch64 configuration space
+          fai-diskimage --help
+          
           sudo fai-diskimage \
             --verbose \
             --size 10G \
             --class DEFAULT,DEBIAN,ARM64,UEFI,CLOUD \
-            --config-space ./fai-config \
+            --cspace ./fai-config \
             fai-aarch64-raw.img
 
       - name: Convert Raw Image to Fixed Hyper-V VHD Format
@@ -70,6 +72,6 @@ jobs:
       - name: Upload Finished Image Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: hyperv-aarch64-gen2-vhd
+          name: hyperv-aarch64-gen2-vhd-${{ github.run_number }}
           path: output-arm64-gen2.vhd
           if-no-files-found: error
