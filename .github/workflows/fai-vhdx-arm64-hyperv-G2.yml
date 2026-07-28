@@ -16,8 +16,10 @@ jobs:
 
       - name: Setup FAI Environment Configuration
         run: |
-          # Define a basic FAI configuration space locally
-          mkdir -p fai-config/{class,disk_config,package_config}
+          mkdir -p fai-config/{class,disk_config,package_config,files/etc/apt/sources.list}
+          
+          # 1. Define active building profiles/classes
+          echo "DEFAULT DEBIAN ARM64 UEFI CLOUD HYPERV_GEN2" > fai-config/class/50-host-classes
           
           # 1. Define active building profiles/classes
           # DEBIAN = OS, ARM64 = Arch, UEFI = Boot type, CLOUD = Cloud-init/Hyper-V hooks
@@ -30,6 +32,13 @@ jobs:
           primary /          4G-    ext4   rw,noatime
           EOF
 
+          # 3. Create a target-specific package source file strictly for the Debian Guest
+          # The filename matches the target class 'DEBIAN'
+          cat << 'EOF' | tr -d '\r' > fai-config/files/etc/apt/sources.list/DEBIAN
+          deb http://deb.debian.org/debian sid main non-free-firmware
+          deb-src http://deb.debian.org/debian sid main non-free-firmware
+          EOF
+          
           # 3. Choose the required ARM64 packages
           cat << 'EOF' > fai-config/package_config/CLOUD
           PACKAGES install
@@ -38,6 +47,7 @@ jobs:
           cloud-initramfs-growroot
           openssh-server
           grub-efi-arm64
+          # grub-efi-arm64-bin
           EOF
 
       - name: Debug Disk Config Hex Output
