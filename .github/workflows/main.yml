@@ -15,8 +15,9 @@ jobs:
       - name: Install Build and Deployment Tools
         run: |
           sudo apt update
-          sudo apt install -y debootstrap squashfs-tools xorriso grub-pc-bin grub-efi-ia32-bin grub-efi-amd64-bin grub-efi-arm64-bin mtools mdtadm
-
+          sudo apt install -y debootstrap squashfs-tools xorriso grub-pc-bin grub-efi-ia32-bin grub-efi-amd64-bin grub-efi-arm64-bin mtools 
+          # mdtadm?
+          
       - name: Create Structure and Download Snapdragon Kernel Blobs
         run: |
           # 1. Set up build workspace directories
