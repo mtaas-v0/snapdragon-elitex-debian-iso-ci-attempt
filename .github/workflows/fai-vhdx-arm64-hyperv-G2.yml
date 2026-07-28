@@ -46,9 +46,30 @@ jobs:
           cloud-init
           cloud-initramfs-growroot
           openssh-server
-          grub-efi-arm64
-          # grub-efi-arm64-bin
+          # grub-efi-arm64
+          grub-efi-arm64-bin
           EOF
+
+          # 5. Create a hook to fix headless UEFI ARM64 GRUB installations
+          mkdir -p fai-config/hooks
+          cat << 'EOF' | tr -d '\r' > fai-config/hooks/instsoft.CLOUD
+          #!/bin/bash
+          
+          echo "=== RUNNING HEADLESS GRUB ARM64 HOOK ==="
+          # Force the guest environment to generate the fallback EFI path natively
+          # This writes directly to /boot/efi/EFI/BOOT/bootaa64.efi
+          chroot $FAI_ROOT grub-install \
+            --target=arm64-efi \
+            --no-nvram \
+            --removable \
+            --efi-directory=/boot/efi
+          
+          # Generate the final boot config based on the new filesystem UUIDs
+          chroot $FAI_ROOT grub-mkconfig -o /boot/grub/grub.cfg
+          EOF
+          
+          # Make the hook script executable so FAI can run it
+          chmod +x fai-config/hooks/instsoft.CLOUD
 
       - name: Debug Disk Config Hex Output
         run: |
@@ -70,6 +91,7 @@ jobs:
 
       - name: Execute FAI Disk Image Builder
         continue-on-error: true
+        id: fai-diskimage
         run: |
           # Generate a raw disk file natively mapped to the AArch64 configuration space
           echo "::group::fai-diskimage --help"
@@ -90,7 +112,7 @@ jobs:
           echo "::endgroup::"
             
       - name: Cat Hidden FAI Failure Logs
-        if: failure()  # Runs ONLY if the step above exits with status 1
+        if: steps.fai-diskimage.outcome == 'failure'   # Runs ONLY if the step above exits with status 1
         run: |
           echo "=== EXTRACTING HIDDEN INTERNAL FAI LOG ENGINES ==="
           # Locate the active logging pool directory and print the primary error logs
