@@ -61,9 +61,10 @@ jobs:
             --size 10G \
             --class DEFAULT,DEBIAN,ARM64,UEFI,CLOUD \
             --cspace ./fai-config \
-            fai-aarch64-raw.img
+            output-arm64-gen2.vhdx
 
       - name: Convert Raw Image to Fixed Hyper-V VHD Format
+        if: false
         run: |
           # Hyper-V Gen2 supports VHD and VHDX. 
           # For cross-platform Azure compatibility, convert it to a FIXED-size VHD format.
