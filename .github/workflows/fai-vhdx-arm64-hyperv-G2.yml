@@ -61,7 +61,7 @@ jobs:
             --verbose \
             --size 10G \
             --class DEFAULT,DEBIAN,ARM64,UEFI,CLOUD \
-            --cspace ./fai-config \
+            --cspace file://${{ github.workspace }}/fai-config \
             output-arm64-gen2.vhdx
 
       - name: Convert Raw Image to Fixed Hyper-V VHD Format
