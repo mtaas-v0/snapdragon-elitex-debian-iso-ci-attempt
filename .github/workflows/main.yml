@@ -126,7 +126,7 @@ jobs:
           mmd -i efi.img ::/EFI/BOOT
 
           # 2. Compile standalone ARM64 GRUB core binary
-          grub-mkimage -O arm64-efi -p /boot/grub -o bootaa64.efi ext2 part_gpt fat search normal configfile linux
+          grub-mkimage -O arm64-efi -p /boot/grub -o bootaa64.efi part_gpt part_msdos iso9660 udf search normal test linux configfile boot ls echo cat fat efi_gop efi_gop
 
           # 3. Inject it inside the raw fat efi partition image
           mcopy -i efi.img bootaa64.efi ::/EFI/BOOT/BOOTAA64.EFI
