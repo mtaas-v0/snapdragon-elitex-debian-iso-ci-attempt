@@ -88,7 +88,7 @@ jobs:
       - name: Generate UEFI Boot Loader Configurations
         run: |
           # Generate custom GRUB selections linking explicit X Elite device identifiers
-          sudo cat <<EOF > iso_root/boot/grub/grub.cfg
+          sudo tee iso_root/boot/grub/grub.cfg <<'EOF' > /dev/null
           insmod part_gpt
           insmod ext2
           set linux_gfx_mode=keep
@@ -117,10 +117,12 @@ jobs:
 
       - name: Create Bootable ISO Image
         run: |
-          xorriso -as mkisofs \
+          sudo xorriso -as mkisofs \
             -R -J -joliet-long \
             -o debian-x1elite-minimal.iso \
             iso_root/
+          find *.iso
+          sudo chmod o+rwx debian-x1elite-minimal.iso
 
       - name: Upload Finished Boot Image Artifact
         uses: actions/upload-artifact@v4
