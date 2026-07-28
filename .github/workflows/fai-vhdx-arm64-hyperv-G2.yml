@@ -25,7 +25,7 @@ jobs:
           
           # Force Gen2 Hyper-V partition mapping (Clean FAI compatible syntax)
           cat << 'EOF' > fai-config/disk_config/HYPERV_GEN2
-          disk_config disk1 fstabkey:uuid align:4M disklabel:gpt
+          disk_config disk1 disklabel:gpt fstabkey:uuid align-at:4M
           primary /boot/efi  512M   vfat   rw,noatime,umask=0077
           primary /          4G-    ext4   rw,noatime
           EOF
