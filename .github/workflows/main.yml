@@ -35,7 +35,7 @@ jobs:
           # 3. Force Debian to download its native ultra-modern ARM64 kernel and firmware
           sudo chroot debian_root /bin/bash -c "
             apt-get update
-            apt-get install -y --no-install-recommends linux-image-arm64 firmware-qcom
+            apt-get install -y --no-install-recommends linux-image-arm64 firmware-qcom-soc
             
             # Prune background TTY layouts to maximize RAM savings for AI inference
             echo 'id:3:initdefault:' > /etc/inittab
@@ -51,6 +51,8 @@ jobs:
       - name: Extract DTBs and Clean Up Mountpoints
         run: |
           # 1. Dynamically target the compiled kernel and initrd images inside Debian
+          ls debian_root/boot
+          
           KERNEL_IMG=$(ls debian_root/boot/vmlinuz-* | head -n 1 | xargs basename)
           INITRD_IMG=$(ls debian_root/boot/initrd.img-* | head -n 1 | xargs basename)
 
