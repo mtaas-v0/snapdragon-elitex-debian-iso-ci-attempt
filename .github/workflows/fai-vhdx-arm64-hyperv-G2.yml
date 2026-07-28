@@ -89,7 +89,15 @@ jobs:
             output-arm64-gen2.vhdx
           echo "::endgroup::"
             
-
+      - name: Cat Hidden FAI Failure Logs
+        if: failure()  # Runs ONLY if the step above exits with status 1
+        run: |
+          echo "=== EXTRACTING HIDDEN INTERNAL FAI LOG ENGINES ==="
+          # Locate the active logging pool directory and print the primary error logs
+          sudo tail -n 100 /var/log/fai/localhost/last-install/fai.log || true
+          echo "=== INDIVIDUAL SUB-TASK ERRORS ==="
+          sudo head -n 50 /var/log/fai/localhost/last-install/error.log || true
+          
       - name: Convert Raw Image to Fixed Hyper-V VHD Format
         if: false
         run: |
@@ -97,9 +105,14 @@ jobs:
           # For cross-platform Azure compatibility, convert it to a FIXED-size VHD format.
           qemu-img convert -f raw -O vpc -o subformat=fixed fai-aarch64-raw.img output-arm64-gen2.vhd
 
+      - name: show cwd
+        if: always()
+        run: |
+          ls -la
+        
       - name: Upload Finished Image Artifact
         uses: actions/upload-artifact@v4
         with:
           name: hyperv-aarch64-gen2-vhd-${{ github.run_number }}
-          path: output-arm64-gen2.vhd
+          path: output-arm64-gen2.vhdx
           if-no-files-found: error
