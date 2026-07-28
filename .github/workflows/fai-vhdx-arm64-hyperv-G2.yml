@@ -62,12 +62,15 @@ jobs:
         run: |
           # Generate a raw disk file natively mapped to the AArch64 configuration space
           fai-diskimage --help
-          
-          sudo fai-diskimage \
+          echo "^^^^ above is help from fai-diskimage"
+          sudo \
+            FAI_DEBOOTSTRAP="sid http://deb.debian.org/debian" \
+            FAI_DEBOOTSTRAP_OPTS="--arch arm64 --include=apt" \
+            fai-diskimage \
             --verbose \
             --size 10G \
-            --class DEFAULT,DEBIAN,ARM64,UEFI,CLOUD,HYPERV_GEN2  \
-            --cspace file://${{ github.workspace }}/fai-config \
+            --class DEFAULT,DEBIAN,ARM64,UEFI,CLOUD,HYPERV_GEN2 \
+            -s file://${{ github.workspace }}/fai-config \
             output-arm64-gen2.vhdx
 
       - name: Convert Raw Image to Fixed Hyper-V VHD Format
