@@ -20,6 +20,7 @@ jobs:
           sudo apt-get install -y \
             fai-server \
             fai-client \
+            fai-setup-storage \
             qemu-utils \
             dosfstools \
             parted \
