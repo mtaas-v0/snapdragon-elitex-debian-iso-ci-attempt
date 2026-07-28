@@ -25,7 +25,7 @@ jobs:
       - name: Bootstrap Minimal Debian Layer with Target Kernel
         run: |
           # 1. Bootstrap a minimal Debian Sid (Unstable) layer
-          sudo debootstrap --variant=minbase sid debian_root http://debian.org
+          sudo debootstrap --variant=minbase sid debian_root https://deb.debian.org/debian/
 
           # 2. Mount virtual filesystems so apt behaves correctly inside the container
           sudo mount --bind /dev debian_root/dev
