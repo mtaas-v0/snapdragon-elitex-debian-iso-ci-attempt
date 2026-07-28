@@ -14,18 +14,6 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Install Build and Virtualization Dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            fai-server \
-            fai-client \
-            fai-setup-storage \
-            qemu-utils \
-            dosfstools \
-            parted \
-            gdisk
-
       - name: Setup FAI Environment Configuration
         run: |
           # Define a basic FAI configuration space locally
@@ -51,6 +39,24 @@ jobs:
           openssh-server
           grub-efi-arm64
           EOF
+
+      - name: Debug Disk Config Hex Output
+        run: |
+          echo "=== HEX DUMP OF HYPERV_GEN2 ==="
+          xxd fai-config/disk_config/HYPERV_GEN2 || hexdump -C fai-config/disk_config/HYPERV_GEN2
+
+      - name: Install Build and Virtualization Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            fai-server \
+            fai-client \
+            fai-setup-storage \
+            qemu-utils \
+            dosfstools \
+            parted \
+            gdisk
+
 
       - name: Execute FAI Disk Image Builder
         run: |
