@@ -73,7 +73,7 @@ jobs:
           # 2. Extract and copy all Snapdragon X Elite DTB files to the uncompressed ISO boot layer
           # In native Debian layout, device tree binaries live in /usr/lib/linux-image-<version>/qcom/
           DTB_DIR=$(ls -d debian_root/usr/lib/linux-image-*/qcom 2>/dev/null || ls -d debian_root/lib/firmware/*/device-tree/qcom 2>/dev/null)
-          mkdir -p iso_root/boot/dtbs
+          sudo mkdir -p iso_root/boot/dtbs
           sudo cp -r $DTB_DIR/* iso_root/boot/dtbs/
 
           # 3. Clean up the system mountpoints before filesystem building
@@ -88,7 +88,7 @@ jobs:
       - name: Generate UEFI Boot Loader Configurations
         run: |
           # Generate custom GRUB selections linking explicit X Elite device identifiers
-          cat <<EOF > iso_root/boot/grub/grub.cfg
+          sudo cat <<EOF > iso_root/boot/grub/grub.cfg
           insmod part_gpt
           insmod ext2
           set linux_gfx_mode=keep
