@@ -115,32 +115,40 @@ jobs:
           }
           EOF
 
-      # NEW CORE STEP: Build a native, physical FAT UEFI boot partition inside the architecture tree
       - name: Build El Torito EFI Partition Image
+        shell: sudo bash {0}
         run: |
-          # 1. Instantiate an empty block container image and format it as FAT16
-          sudo dd if=/dev/zero of=iso_root/boot/efi.img bs=1M count=32
-          sudo mkfs.vfat -F 16 iso_root/boot/efi.img
+          # 1. Create a 32MB fat image outside the main ISO tree temporarily
+          dd if=/dev/zero of=efi.img bs=1M count=32
+          mkfs.vfat -F 16 efi.img
 
-          # 2. Structure the native EFI firmware directory loop inside the image container
-          sudo mmd -i iso_root/boot/efi.img ::/EFI
-          sudo mmd -i iso_root/boot/efi.img ::/EFI/BOOT
+          mmd -i efi.img ::/EFI
+          mmd -i efi.img ::/EFI/BOOT
 
-          # 3. Generate a standalone AArch64 GRUB binary targeting local paths
-          sudo grub-mkimage -O arm64-efi -p /boot/grub -o bootaa64.efi ext2 part_gpt fat search normal configfile linux
+          # 2. Compile standalone ARM64 GRUB core binary
+          grub-mkimage -O arm64-efi -p /boot/grub -o bootaa64.efi ext2 part_gpt fat search normal configfile linux
 
-          # 4. Inject the compiled standalone binary straight into the virtual FAT loop
-          sudo mcopy -i iso_root/boot/efi.img bootaa64.efi ::/EFI/BOOT/BOOTAA64.EFI
+          # 3. Inject it inside the raw fat efi partition image
+          mcopy -i efi.img bootaa64.efi ::/EFI/BOOT/BOOTAA64.EFI
 
+          # 4. CRITICAL FIX: Place a looser matching duplicate copy directly onto the standard filesystem path 
+          # This allows standard UEFI stubs to auto-detect the image on flash media without complex partition lookups
+          mkdir -p iso_root/EFI/BOOT
+          cp bootaa64.efi iso_root/EFI/BOOT/BOOTAA64.EFI
+          
+          # Move the compiled raw image map straight into the active build environment
+          mv efi.img iso_root/boot/efi.img
+
+      # FIXED STEP: Standardized, robust xorriso configuration layout
       - name: Create Bootable UEFI ISO Image
+        shell: sudo bash {0}
         run: |
-          # Use specialized parameters to register the virtual image block as a boot entry
-          sudo xorriso -as mkisofs \
+          xorriso -as mkisofs \
             -R -J -joliet-long \
             -iso-level 3 \
             -append_partition 2 0xef iso_root/boot/efi.img \
-            -partition_cyl_align all \
-            -e --interval:appended_partition_only:2 \
+            -eltorito-alt-boot \
+            -e boot/efi.img \
             -no-emul-boot \
             -o debian-x1elite-minimal.iso \
             iso_root/
