@@ -16,11 +16,18 @@ jobs:
           sudo apt update
           sudo apt install -y debootstrap squashfs-tools xorriso grub-efi-arm64-bin mtools
 
-      - name: Create Workspace Structure
+      # CRITICAL FIX STEP: Sanitize workspace user tracking rules
+      - name: Fix Directory Permissions and Ownership
         run: |
+          # Enforce root structural properties across the environment to satisfy systemd safety audits
+          sudo chown root:root .
+          sudo chown root:root ../
+          
           mkdir -p iso_root/boot/grub
           mkdir -p iso_root/live
           mkdir -p debian_root
+          
+          sudo chown -R root:root iso_root debian_root
 
       - name: Bootstrap Minimal Debian Layer with Target Kernel
         run: |
@@ -51,7 +58,7 @@ jobs:
       - name: Extract DTBs and Clean Up Mountpoints
         run: |
           # 1. Dynamically target the compiled kernel and initrd images inside Debian
-          ls debian_root/boot
+          find debian_root
           
           KERNEL_IMG=$(ls debian_root/boot/vmlinuz-* | head -n 1 | xargs basename)
           INITRD_IMG=$(ls debian_root/boot/initrd.img-* | head -n 1 | xargs basename)
