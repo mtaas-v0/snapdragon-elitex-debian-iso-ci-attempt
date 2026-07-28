@@ -61,9 +61,13 @@ jobs:
       - name: Execute FAI Disk Image Builder
         run: |
           # Generate a raw disk file natively mapped to the AArch64 configuration space
+          echo "::group::fai-diskimage --help"
           fai-diskimage --help
-          echo "^^^^ above is help from fai-diskimage"
+          echo "::endgroup::"
+          
+          echo "::group::FAI Bootstrapping and Disk Image Compilation Logs"
           sudo \
+            FAI_FLAGS="update" \
             FAI_DEBOOTSTRAP="sid http://deb.debian.org/debian" \
             FAI_DEBOOTSTRAP_OPTS="--arch arm64 --include=apt" \
             fai-diskimage \
@@ -72,6 +76,8 @@ jobs:
             --class DEFAULT,DEBIAN,ARM64,UEFI,CLOUD,HYPERV_GEN2 \
             -s file://${{ github.workspace }}/fai-config \
             output-arm64-gen2.vhdx
+          echo "::endgroup::"
+            
 
       - name: Convert Raw Image to Fixed Hyper-V VHD Format
         if: false
