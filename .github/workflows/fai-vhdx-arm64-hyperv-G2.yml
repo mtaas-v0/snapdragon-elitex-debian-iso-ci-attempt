@@ -50,25 +50,35 @@ jobs:
           grub-efi-arm64-bin
           EOF
 
-          # 5. Create a hook to fix headless UEFI ARM64 GRUB installations
+          # 5. Create a robust hook to populate the UEFI ARM64 GRUB binary
           mkdir -p fai-config/hooks
           cat << 'EOF' | tr -d '\r' > fai-config/hooks/instsoft.CLOUD
           #!/bin/bash
+          echo "=== PREPARING VIRTUAL FILESYSTEMS FOR CHROOT GRUB ==="
           
-          echo "=== RUNNING HEADLESS GRUB ARM64 HOOK ==="
-          # Force the guest environment to generate the fallback EFI path natively
-          # This writes directly to /boot/efi/EFI/BOOT/bootaa64.efi
+          # Explicitly mount essential host kernel devices into the chroot space
+          mount --bind /dev  $FAI_ROOT/dev
+          mount --bind /proc $FAI_ROOT/proc
+          mount --bind /sys  $FAI_ROOT/sys
+          
+          echo "=== RUNNING HEADLESS REMOVABLE GRUB INSTALLATION ==="
+          # Execute the bootloader compilation safely inside the isolated target paths
           chroot $FAI_ROOT grub-install \
             --target=arm64-efi \
             --no-nvram \
             --removable \
             --efi-directory=/boot/efi
           
-          # Generate the final boot config based on the new filesystem UUIDs
+          # Compile the final menu config mapping out the dynamic drive UUIDs
           chroot $FAI_ROOT grub-mkconfig -o /boot/grub/grub.cfg
+          
+          echo "=== CLEANING UP MOUNT POINTS ==="
+          # Unmount the host filesystems so FAI can cleanly finalize and unloop the disk image
+          umount $FAI_ROOT/dev
+          umount $FAI_ROOT/proc
+          umount $FAI_ROOT/sys
           EOF
           
-          # Make the hook script executable so FAI can run it
           chmod +x fai-config/hooks/instsoft.CLOUD
 
       - name: Debug Disk Config Hex Output
@@ -114,11 +124,17 @@ jobs:
       - name: Cat Hidden FAI Failure Logs
         if: steps.fai-diskimage.outcome == 'failure'   # Runs ONLY if the step above exits with status 1
         run: |
-          echo "=== EXTRACTING HIDDEN INTERNAL FAI LOG ENGINES ==="
-          # Locate the active logging pool directory and print the primary error logs
-          sudo tail -n 100 /var/log/fai/localhost/last-install/fai.log || true
-          echo "=== INDIVIDUAL SUB-TASK ERRORS ==="
-          sudo head -n 50 /var/log/fai/localhost/last-install/error.log || true
+          echo "=== LOCATING LIVE FAI LOG DIRECTORIES ==="
+          # Find any log file created in the last 15 minutes across likely FAI mount paths
+          sudo find /var/log/fai/ /tmp/fai/ -type f -name "*.log" -o -name "fai.log" || true
+          
+          echo "=== DUMPING PRIMARY FAI EXECUTION STREAM ==="
+          # Target the fallback live directory using wildcard directory matching
+          sudo tail -n 150 /var/log/fai/*/*/fai.log || sudo tail -n 150 /tmp/fai/fai.log || true
+          
+          echo "=== DUMPING RECORDED SUB-TASK ERRORS ==="
+          sudo head -n 50 /var/log/fai/*/*/error.log || sudo head -n 50 /tmp/fai/error.log || true
+
           
       - name: Convert Raw Image to Fixed Hyper-V VHD Format
         if: false
