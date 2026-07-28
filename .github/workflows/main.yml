@@ -23,9 +23,9 @@ jobs:
           sudo chown root:root .
           sudo chown root:root ../
           
-          mkdir -p iso_root/boot/grub
-          mkdir -p iso_root/live
-          mkdir -p debian_root
+          sudo mkdir -p iso_root/boot/grub
+          sudo mkdir -p iso_root/live
+          sudo mkdir -p debian_root
           
           sudo chown -R root:root iso_root debian_root
 
