@@ -25,7 +25,7 @@ jobs:
       - name: Bootstrap Minimal Debian Layer with Target Kernel
         run: |
           # 1. Bootstrap a minimal Debian Sid (Unstable) layer
-          sudo debootstrap --variant=minbase sid debian_root https://deb.debian.org/debian/
+          sudo debootstrap --components=main,non-free-firmware --variant=minbase sid debian_root https://deb.debian.org/debian/
 
           # 2. Mount virtual filesystems so apt behaves correctly inside the container
           sudo mount --bind /dev debian_root/dev
@@ -35,7 +35,7 @@ jobs:
           # 3. Force Debian to download its native ultra-modern ARM64 kernel and firmware
           sudo chroot debian_root /bin/bash -c "
             apt-get update
-            apt-get install -y --no-install-recommends linux-image-arm64 linux-firmware-qualcomm
+            apt-get install -y --no-install-recommends linux-image-arm64 firmware-qcom
             
             # Prune background TTY layouts to maximize RAM savings for AI inference
             echo 'id:3:initdefault:' > /etc/inittab
