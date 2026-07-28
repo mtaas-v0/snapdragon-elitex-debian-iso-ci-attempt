@@ -54,6 +54,16 @@ jobs:
           mkdir -p fai-config/hooks
           cat << 'EOF' | tr -d '\r' > fai-config/hooks/instsoft.CLOUD
           #!/bin/bash
+          
+          # ==========================================
+          # CANARY MARKER: Positive Confirmation Logs
+          # ==========================================
+          echo "##################################################"
+          echo "👉 SUCCESS: THE CLOUD INSTSOFT HOOK WAS TRIGGERED! 👈"
+          echo "Host Workspace: $(pwd)"
+          echo "Target Root Dir: $FAI_ROOT"
+          echo "##################################################"
+          
           echo "=== PREPARING VIRTUAL FILESYSTEMS FOR CHROOT GRUB ==="
           
           # Explicitly mount essential host kernel devices into the chroot space
@@ -71,7 +81,19 @@ jobs:
           
           # Compile the final menu config mapping out the dynamic drive UUIDs
           chroot $FAI_ROOT grub-mkconfig -o /boot/grub/grub.cfg
-          
+                    
+          # ==========================================
+          # EFI CONTENT CHECK: Confirm files are written
+          # ==========================================
+          echo "=== VERIFYING EFI CONTENT INSIDE GUEST SPACE ==="
+          if [ -f "$FAI_ROOT/boot/efi/EFI/BOOT/bootaa64.efi" ]; then
+            echo "✅ SUCCESS: bootaa64.efi successfully written to guest EFI partition!"
+          else
+            echo "❌ ERROR: EFI partition is STILL empty inside the guest filesystem!"
+            echo "Listing contents of $FAI_ROOT/boot/efi:"
+            ls -laR $FAI_ROOT/boot/efi
+          fi
+
           echo "=== CLEANING UP MOUNT POINTS ==="
           # Unmount the host filesystems so FAI can cleanly finalize and unloop the disk image
           umount $FAI_ROOT/dev
@@ -130,10 +152,12 @@ jobs:
           
           echo "=== DUMPING PRIMARY FAI EXECUTION STREAM ==="
           # Target the fallback live directory using wildcard directory matching
-          sudo tail -n 150 /var/log/fai/*/*/fai.log || sudo tail -n 150 /tmp/fai/fai.log || true
+          # tail -n 150
+          sudo cat /var/log/fai/*/*/fai.log || sudo tail -n 150 /tmp/fai/fai.log || true
           
           echo "=== DUMPING RECORDED SUB-TASK ERRORS ==="
-          sudo head -n 50 /var/log/fai/*/*/error.log || sudo head -n 50 /tmp/fai/error.log || true
+          # head -n 50
+          sudo cat /var/log/fai/*/*/error.log || sudo head -n 50 /tmp/fai/error.log || true
 
           
       - name: Convert Raw Image to Fixed Hyper-V VHD Format
