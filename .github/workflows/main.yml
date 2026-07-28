@@ -1,6 +1,7 @@
 name: Build Lean Debian Snapdragon X Elite ISO
 
 on:
+  push:
   workflow_dispatch:
 
 jobs:
@@ -54,11 +55,14 @@ jobs:
             echo 'deb-snapdragon' > /etc/hostname
             echo '127.0.0.1 localhost deb-snapdragon' > /etc/hosts
           "
+      - name: List files for debugging
+        continue-on-error: true
+        run: | 
+          find debian_root
 
       - name: Extract DTBs and Clean Up Mountpoints
         run: |
           # 1. Dynamically target the compiled kernel and initrd images inside Debian
-          find debian_root
           
           KERNEL_IMG=$(ls debian_root/boot/vmlinuz-* | head -n 1 | xargs basename)
           INITRD_IMG=$(ls debian_root/boot/initrd.img-* | head -n 1 | xargs basename)
