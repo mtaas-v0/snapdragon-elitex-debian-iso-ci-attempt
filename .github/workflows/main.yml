@@ -119,7 +119,7 @@ jobs:
       - name: Build El Torito EFI Partition Image
         run: |
           # 1. Instantiate an empty block container image and format it as FAT16
-          sudo dd if=/dev/zero of=iso_root/boot/efi.img bs=1M count=8
+          sudo dd if=/dev/zero of=iso_root/boot/efi.img bs=1M count=32
           sudo mkfs.vfat -F 16 iso_root/boot/efi.img
 
           # 2. Structure the native EFI firmware directory loop inside the image container
