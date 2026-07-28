@@ -1,11 +1,10 @@
 name: Build Lean Debian Snapdragon X Elite ISO
 
 on:
-  workflow_dispatch: # Allows manual trigger from the GitHub Actions UI
+  workflow_dispatch:
 
 jobs:
   build-iso:
-    # Leverages GitHub's native 64-bit ARM Linux runners
     runs-on: ubuntu-24.04-arm 
     
     steps:
@@ -15,95 +14,99 @@ jobs:
       - name: Install Build and Deployment Tools
         run: |
           sudo apt update
-          sudo apt install -y debootstrap squashfs-tools xorriso grub-efi-arm64-bin mtools 
-          # mdtadm?
-          
-      - name: Create Structure and Download Snapdragon Kernel Blobs
+          sudo apt install -y debootstrap squashfs-tools xorriso grub-efi-arm64-bin mtools
+
+      - name: Create Workspace Structure
         run: |
-          # 1. Set up build workspace directories
           mkdir -p iso_root/boot/grub
           mkdir -p iso_root/live
           mkdir -p debian_root
 
-          # 2. Add the Ubuntu Qualcomm Concept PPA to grab the specialized X Elite kernel
-          sudo add-apt-repository -y ppa:canonical-kernel-team/ppa
-          sudo apt update
-          
-          # 3. Download the specific Snapdragon laptop kernel and firmware packages
-          apt-get download linux-image-generic-wip-uspt linux-modules-generic-wip-uspt linux-firmware
-
-      - name: Bootstrap Minimal Debian Layer
+      - name: Bootstrap Minimal Debian Layer with Target Kernel
         run: |
-          # Deploy a clean, minimal Debian Sid/Unstable layer (best for cutting-edge ARM laptops)
+          # 1. Bootstrap a minimal Debian Sid (Unstable) layer
           sudo debootstrap --variant=minbase sid debian_root http://debian.org
 
-          # Move downloaded Snapdragon kernel/firmware packages inside the chroot environment
-          sudo mv *.deb debian_root/tmp/
-
-      - name: Configure Lean Debian Environment and Install Kernel
-        run: |
+          # 2. Mount virtual filesystems so apt behaves correctly inside the container
           sudo mount --bind /dev debian_root/dev
           sudo mount --bind /proc debian_root/proc
           sudo mount --bind /sys debian_root/sys
 
-          # Run internal configurations to keep the OS slim
+          # 3. Force Debian to download its native ultra-modern ARM64 kernel and firmware
           sudo chroot debian_root /bin/bash -c "
-            # Install the specific Snapdragon kernel hardware blobs
-            dpkg -i /tmp/*.deb || apt-get install -f -y
-            rm -f /tmp/*.deb
-
-            # Remove unwanted terminal/tty processes to preserve RAM
+            apt-get update
+            apt-get install -y --no-install-recommends linux-image-arm64 linux-firmware-qualcomm
+            
+            # Prune background TTY layouts to maximize RAM savings for AI inference
             echo 'id:3:initdefault:' > /etc/inittab
             echo '1:2345:respawn:/sbin/getty 38400 tty1' >> /etc/inittab
 
-            # Optimize memory behavior for local AI inference workload
+            # Optimize kernel memory allocations for matrix/tensor operations
             echo 'vm.swappiness=0' >> /etc/sysctl.conf
             
-            # Configure absolute basic networking
             echo 'deb-snapdragon' > /etc/hostname
             echo '127.0.0.1 localhost deb-snapdragon' > /etc/hosts
           "
-          
-          sudo umount debian_root/dev debian_root/proc debian_root/sys
+
+      - name: Extract DTBs and Clean Up Mountpoints
+        run: |
+          # 1. Dynamically target the compiled kernel and initrd images inside Debian
+          KERNEL_IMG=$(ls debian_root/boot/vmlinuz-* | head -n 1 | xargs basename)
+          INITRD_IMG=$(ls debian_root/boot/initrd.img-* | head -n 1 | xargs basename)
+
+          sudo cp debian_root/boot/$KERNEL_IMG iso_root/boot/vmlinuz
+          sudo cp debian_root/boot/$INITRD_IMG iso_root/boot/initrd
+
+          # 2. Extract and copy all Snapdragon X Elite DTB files to the uncompressed ISO boot layer
+          # In native Debian layout, device tree binaries live in /usr/lib/linux-image-<version>/qcom/
+          DTB_DIR=$(ls -d debian_root/usr/lib/linux-image-*/qcom 2>/dev/null || ls -d debian_root/lib/firmware/*/device-tree/qcom 2>/dev/null)
+          mkdir -p iso_root/boot/dtbs
+          sudo cp -r $DTB_DIR/* iso_root/boot/dtbs/
+
+          # 3. Clean up the system mountpoints before filesystem building
+          sudo umount debian_root/dev
+          sudo umount debian_root/proc
+          sudo umount debian_root/sys
 
       - name: Compress Root System into Live SquashFS
         run: |
-          # Compress your optimized Debian setup into the read-only live filesystem container
           sudo mksquashfs debian_root iso_root/live/filesystem.squashfs -comp xz
 
       - name: Generate UEFI Boot Loader Configurations
         run: |
-          # Dynamically capture the generated kernel and initrd file names from the root build
-          KERNEL_IMG=$(ls debian_root/boot/vmlinuz-* | head -n 1 | xargs basename)
-          INITRD_IMG=$(ls debian_root/boot/initrd.img-* | head -n 1 | xargs basename)
-
-          # Copy the actual kernel images out to the public boot path on the ISO
-          sudo cp debian_root/boot/$KERNEL_IMG iso_root/boot/vmlinuz
-          sudo cp debian_root/boot/$INITRD_IMG iso_root/boot/initrd
-
-          # Generate the GRUB menu configuration file targeting Snapdragon initialization parameters
+          # Generate custom GRUB selections linking explicit X Elite device identifiers
           cat <<EOF > iso_root/boot/grub/grub.cfg
           insmod part_gpt
           insmod ext2
           set linux_gfx_mode=keep
           
-          menuentry "Minimal Debian (Snapdragon X Elite Live - Max RAM)" {
-              # Pass specific Qualcomm driver management arguments to prevent device hanging
+          # Option A: ASUS Vivobook S 15
+          menuentry "Debian Live (ASUS Vivobook S 15 - X Elite)" {
               linux /boot/vmlinuz boot=live quiet splash clk_ignore_unused nomodeset
               initrd /boot/initrd
+              devicetree /boot/dtbs/x1e80100-asus-vivobook-s15.dtb
+          }
+
+          # Option B: Lenovo Yoga Slim 7x
+          menuentry "Debian Live (Lenovo Yoga Slim 7x - X Elite)" {
+              linux /boot/vmlinuz boot=live quiet splash clk_ignore_unused nomodeset
+              initrd /boot/initrd
+              devicetree /boot/dtbs/x1e80100-lenovo-yoga-slim7x.dtb
+          }
+
+          # Option C: Generic / Reference Snapdragon X Elite Board
+          menuentry "Debian Live (Generic Snapdragon X Elite CRD)" {
+              linux /boot/vmlinuz boot=live quiet splash clk_ignore_unused nomodeset
+              initrd /boot/initrd
+              devicetree /boot/dtbs/x1e80100-crd.dtb
           }
           EOF
 
       - name: Create Bootable ISO Image
         run: |
-          # Build a compliant UEFI ISO image that the Oryon architecture can interpret natively
           xorriso -as mkisofs \
             -R -J -joliet-long \
-            -boot-load-size 4 -boot-info-table \
-            -eltorito-alt-boot \
-            -e --interval:appended_partition_only:2 \
-            -no-emul-boot \
-            -o debian-x1 elite-minimal.iso \
+            -o debian-x1elite-minimal.iso \
             iso_root/
 
       - name: Upload Finished Boot Image Artifact
