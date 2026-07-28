@@ -1,7 +1,7 @@
 name: Build Lean Debian Snapdragon X Elite ISO
 
 on:
-  push:
+#  push:
   workflow_dispatch:
 
 jobs:
@@ -158,6 +158,6 @@ jobs:
 
       - name: Upload Finished Boot Image Artifact
         uses: actions/upload-artifact@v4
-        with:
-          name: snapdragon-debian-iso
+        with:          
+          name: debian-x1elite-minimal-${{ github.run_number }}
           path: debian-x1elite-minimal.iso
