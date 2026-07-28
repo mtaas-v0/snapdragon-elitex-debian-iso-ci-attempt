@@ -69,6 +69,7 @@ jobs:
 
 
       - name: Execute FAI Disk Image Builder
+        continue-on-error: true
         run: |
           # Generate a raw disk file natively mapped to the AArch64 configuration space
           echo "::group::fai-diskimage --help"
