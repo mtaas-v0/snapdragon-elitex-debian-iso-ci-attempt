@@ -1,0 +1,66 @@
+name: Build Hyper-V AArch64 Linux VHDX
+
+on:
+
+  workflow_dispatch: # Allows you to trigger this manually from the GitHub UI
+
+jobs:
+  convert-image:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y qemu-utils wget xz-utils
+          
+      - name: Download and Convert Image in a Single Stream
+        run: |
+          # 1. Download the archive
+          wget -q https://cloud.debian.org/cdimage/cloud/bookworm/20260722-2547/debian-12-azure-arm64-20260722-2547.tar.xz
+          
+          # 2. Extract disk.raw to stdout and pipe it directly into qemu-img reading from standard input
+          tar -xOf debian-12-azure-arm64-20260722-2547.tar.xz disk.raw | qemu-img convert -f raw -O vhdx -o subformat=dynamic -  debian-12-azure-arm64-20260722-2547.vhdx
+          
+          # 3. Clean up the downloaded archive
+          rm debian-12-generic-arm64.tar.xz
+          
+          # 4. Verify the final tiny dynamic VHDX file size
+          ls -lh .
+          
+      - name: Download and Extract Debian ARM64 Tarball
+        if: false
+        run: |
+          # 1. Download the compressed .tar.xz archive
+          wget -q
+          
+          # 2. Extract disk.raw directly from the archive
+          tar -xJf debian-12-generic-arm64.tar.xz disk.raw
+          
+          # 3. Clean up the archive to save runner space
+          rm debian-12-generic-arm64.tar.xz
+          
+          # 4. Verify disk.raw extraction size
+          ls -lh disk.raw
+
+      - name: Convert RAW Disk to Hyper-V VHDX
+        if: false
+        run: |
+          # Convert the extracted raw file into a dynamic VHDX file
+          qemu-img convert -f raw -O vhdx -o subformat=dynamic disk.raw debian-12-arm64.vhdx
+          
+          # Clean up raw image to optimize space
+          rm disk.raw
+          
+          # Print file size to confirm conversion success
+          ls -lh debian-12-arm64.vhdx
+
+      - name: Upload VHDX Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: debian-12-azure-arm64-20260722-2547
+          path: debian-12-azure-arm64-20260722-2547.vhdx
+          if-no-files-found: error
+          retention-days: 5
