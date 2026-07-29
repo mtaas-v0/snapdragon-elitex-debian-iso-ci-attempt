@@ -52,7 +52,7 @@ jobs:
           EOF
 
       - name: grub setup
-        if: false
+        if: true
         run: |
           cat << 'EOF' | tr -d '\r' > fai-config/scripts/UEFI/10-setup-bootloader
           #!/bin/bash
@@ -76,7 +76,30 @@ jobs:
           # Execute via $ROOTCMD using the absolute path
           $ROOTCMD grub-mkdevicemap --no-floppy
           $ROOTCMD grub-install --target=arm64-efi --no-nvram --removable --efi-directory=/boot/efi  --modules="part_gpt part_msdos iso9660 udf search normal test linux configfile boot ls echo cat fat efi_gop efi_gop" --recheck
-          $ROOTCMD grub-mkconfig -o /boot/efi/EFI/debian/grub.cfg
+          # $ROOTCMD grub-mkconfig -o /boot/efi/EFI/debian/grub.cfg
+
+          # 1. Dynamically find the block device mounted at the root (/) 
+          ROOT_DEV=$( $ROOTCMD findmnt -n -o SOURCE /)
+          echo "ROOT_DEV=$ROOT_DEV"
+          
+          # 2. Extract the true UUID of that block device
+          ROOT_UUID=$( $ROOTCMD blkid -o value -s UUID "$ROOT_DEV")
+          echo "ROOT_UUID=$ROOT_UUID"
+
+          $ROOTCMD tee /boot/efi/EFI/debian/grub.cfg <<'GEOF' > /dev/null
+          insmod part_gpt
+          insmod ext2
+          set linux_gfx_mode=keep
+          
+          # Option A: Debian Hyper-V
+          menuentry "Debian Hyper-V" {
+              linux /boot/vmlinuz-7.1.5+deb14-cloud-arm64 root=UUID=${ROOT_UUID} ro quiet splash
+              initrd /boot/initrd.img-7.1.5+deb14-cloud-arm64
+              # devicetree /boot/dtbs/x1e80100-asus-vivobook-s15.dtb
+          }
+
+          GEOF
+          
           EOF
 
           chmod +x fai-config/scripts/UEFI/10-setup-bootloader
