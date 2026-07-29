@@ -74,10 +74,7 @@ jobs:
           
           # Execute via $ROOTCMD using the absolute path
           $ROOTCMD grub-mkdevicemap --no-floppy
-          $ROOTCMD grub-install --target=arm64-efi \
-            --no-nvram \
-            --removable \
-            --efi-directory=/boot/efi
+          $ROOTCMD grub-install --target=arm64-efi --no-nvram --removable --efi-directory=/boot/efi
           $ROOTCMD grub-mkconfig -o /boot/efi/EFI/debian/grub.cfg
           EOF
 
