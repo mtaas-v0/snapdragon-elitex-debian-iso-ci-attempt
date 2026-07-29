@@ -79,21 +79,21 @@ jobs:
           # $ROOTCMD grub-install --target=arm64-efi --no-nvram --removable --efi-directory=/boot/efi  --modules="part_gpt part_msdos iso9660 udf search normal test linux configfile boot ls echo cat fat efi_gop efi_gop" --recheck
           # Generate a standalone EFI boot file without probing any hardware/loop devices
           $ROOTCMD mkdir -p  /boot/efi/EFI/BOOT/
-          $ROOTCMD grub-mkimage -o /boot/efi/EFI/BOOT/BOOTAA64.EFI -O arm64-efi part_gpt part_msdos iso9660 udf search normal test linux configfile boot ls echo cat fat efi_gop efi_gop
+          $ROOTCMD grub-mkimage  -p /EFI/debian -o /boot/efi/EFI/BOOT/BOOTAA64.EFI -O arm64-efi part_gpt part_msdos iso9660 udf search normal test linux configfile boot ls echo cat fat efi_gop efi_gop
 
           echo "::group::check hardcoded path"
-          $ROOTCMD strings /boot/efi/EFI/BOOT/bootaa64.efi | grep -E "EFI/"
+          strings $target/boot/efi/EFI/BOOT/bootaa64.efi | grep -E "EFI/"
           echo "::endgroup::"
 
           $ROOTCMD mkdir -p /boot/efi/EFI/debian
           # $ROOTCMD grub-mkconfig -o /boot/efi/EFI/debian/grub.cfg
 
           # 1. Dynamically find the block device mounted at the root (/) 
-          ROOT_DEV=$( $ROOTCMD findmnt -n -o SOURCE /)
-          echo "ROOT_DEV=$ROOT_DEV"
-          
-          # 2. Extract the true UUID of that block device
-          ROOT_UUID=$( $ROOTCMD blkid -o value -s UUID "$ROOT_DEV")
+          # Source the FAI disk variables file
+          [ -r $LOGDIR/disk_var.sh ] && . $LOGDIR/disk_var.sh
+          echo "target is: $target"
+          # Query the UUID targeting the exact root path mounted inside FAI
+          ROOT_UUID=$(lsblk -nr -o UUID,MOUNTPOINT | grep -E " $target$" | awk '{print $1}')
           echo "ROOT_UUID=$ROOT_UUID"
 
           $ROOTCMD tee /boot/efi/EFI/debian/grub.cfg <<'GEOF' > /dev/null
