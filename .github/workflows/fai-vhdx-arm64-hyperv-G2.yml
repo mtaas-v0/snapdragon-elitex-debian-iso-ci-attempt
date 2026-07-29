@@ -16,7 +16,7 @@ jobs:
 
       - name: Setup FAI Environment Configuration
         run: |
-          mkdir -p fai-config/{class,disk_config,package_config,files/etc/apt/sources.list}
+          mkdir -p fai-config/{class,disk_config,package_config,files/etc/apt/sources.list,scripts}
           
           # 1. Define active building profiles/classes
           echo "DEFAULT DEBIAN ARM64 UEFI CLOUD HYPERV_GEN2" > fai-config/class/50-host-classes
@@ -53,7 +53,7 @@ jobs:
 
       - name: grub setup
         run: |
-          cat << 'EOF' | tr -d '\r' > fai-config/scripts/GRUB_PC/10-setup-bootloader
+          cat << 'EOF' | tr -d '\r' > fai-config/scripts/10-setup-bootloader
           #!/bin/bash
           # FAI defines $target as the path to the client's mounted root disk (e.g., /target)
           
@@ -74,7 +74,7 @@ jobs:
           $ROOTCMD /usr/sbin/grub-mkconfig -o /boot/efi/EFI/debian/grub.cfg
           EOF
 
-          chmod +x fai-config/scripts/GRUB_PC/10-setup-bootloader
+          chmod +x fai-config/scripts/10-setup-bootloader
 
       - name: Not working efi setup
         if: false
