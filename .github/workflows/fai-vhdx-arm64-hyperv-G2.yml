@@ -93,7 +93,7 @@ jobs:
           [ -r $LOGDIR/disk_var.sh ] && . $LOGDIR/disk_var.sh
           echo "target is: $target"
           # Query the UUID targeting the exact root path mounted inside FAI
-          ROOT_UUID=$(lsblk -nr -o UUID,MOUNTPOINT | grep -E " $target$" | awk '{print $1}')
+          export ROOT_UUID=$(lsblk -nr -o UUID,MOUNTPOINT | grep -E " $target$" | awk '{print $1}')
           echo "ROOT_UUID=$ROOT_UUID"
 
           $ROOTCMD tee /boot/efi/EFI/debian/grub.cfg <<'GEOF' > /dev/null
