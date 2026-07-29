@@ -71,6 +71,13 @@ jobs:
           mount --bind /dev  $FAI_ROOT/dev
           mount --bind /proc $FAI_ROOT/proc
           mount --bind /sys  $FAI_ROOT/sys
+
+          echo "::group::uname -a and ls /sbin in chroot"
+          chroot $FAI_ROOT uname -a 
+          chroot $FAI_ROOT ls /sbin
+          sudo apt get install grub2-common
+          chroot $FAI_ROOT command -v grub-install
+          echo "::endgroup::"
           
           echo "=== RUNNING HEADLESS REMOVABLE GRUB INSTALLATION ==="
           echo "FAI_ROOT: $FAI_ROOT"
