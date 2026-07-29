@@ -65,6 +65,8 @@ jobs:
           fi
           
           echo "SUCCESS: grub-install found. Executing bootloader setup..."
+          mount
+          echo "mount results ended"
           
           # Execute via $ROOTCMD using the absolute path
           $ROOTCMD /usr/sbin/grub-install --target=arm64-efi \
@@ -188,15 +190,20 @@ jobs:
           # Find any log file created in the last 15 minutes across likely FAI mount paths
           sudo find /var/log/fai/ /tmp/fai/ -type f -name "*.log" -o -name "fai.log" || true
           
-          echo "=== DUMPING PRIMARY FAI EXECUTION STREAM ==="
+          echo "::group:: DUMPING PRIMARY FAI EXECUTION STREAM ==="
           # Target the fallback live directory using wildcard directory matching
           # tail -n 150
           sudo cat /var/log/fai/*/*/fai.log || sudo tail -n 150 /tmp/fai/fai.log || true
+          echo "::endgroup::"
           
-          echo "=== DUMPING RECORDED SUB-TASK ERRORS ==="
+          echo "::group:: DUMPING RECORDED SUB-TASK ERRORS ==="
           # head -n 50
           sudo cat /var/log/fai/*/*/error.log || sudo head -n 50 /tmp/fai/error.log || true
-
+          echo "::endgroup::"
+          
+          echo "::group:: /var/log/fai/*/*/scripts.log ==="
+          sudo cat /var/log/fai/*/*/scripts.log  || true
+          echo "::endgroup::"
           
       - name: Convert Raw Image to Fixed Hyper-V VHD Format
         if: false
