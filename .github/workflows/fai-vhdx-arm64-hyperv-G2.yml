@@ -64,16 +64,21 @@ jobs:
               exit 1
           fi
           
-          echo "SUCCESS: grub-install found. Executing bootloader setup..."
+          echo "::group:: host-side mount"
           mount
-          echo "mount results ended"
+          echo "::endgroup::"
+
+          echo "::group:: chroot-side mount"
+          $ROOTCMD mount
+          echo "::endgroup::"
           
           # Execute via $ROOTCMD using the absolute path
-          $ROOTCMD /usr/sbin/grub-install --target=arm64-efi \
+          $ROOTCMD grub-mkdevicemap --no-floppy
+          $ROOTCMD grub-install --target=arm64-efi \
             --no-nvram \
             --removable \
             --efi-directory=/boot/efi
-          $ROOTCMD /usr/sbin/grub-mkconfig -o /boot/efi/EFI/debian/grub.cfg
+          $ROOTCMD grub-mkconfig -o /boot/efi/EFI/debian/grub.cfg
           EOF
 
           chmod +x fai-config/scripts/UEFI/10-setup-bootloader
