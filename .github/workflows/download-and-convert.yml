@@ -17,6 +17,7 @@ jobs:
           sudo apt-get install -y qemu-utils wget xz-utils
           
       - name: Download and Convert Image in a Single Stream
+        if: false
         run: |
           # 1. Download the archive
           wget -q https://cloud.debian.org/cdimage/cloud/bookworm/20260722-2547/debian-12-azure-arm64-20260722-2547.tar.xz
@@ -29,6 +30,32 @@ jobs:
           
           # 4. Verify the final tiny dynamic VHDX file size
           ls -lh .
+
+      - name: Download and Extract as Sparse File
+        run: |
+          # 1. Download the compressed archive
+          wget -q https://cloud.debian.org/cdimage/cloud/bookworm/20260722-2547/debian-12-azure-arm64-20260722-2547.tar.xz
+          
+          # 2. Extract using the --sparse flag so empty spaces don't consume runner disk blocks
+          tar -xJf debian-12-azure-arm64-20260722-2547.tar.xz --sparse disk.raw
+          
+          # 3. Safely delete the archive immediately to optimize remaining space
+          rm debian-12-azure-arm64-20260722-2547.tar.xz
+          
+          # 4. Verify file metrics (ls -lh shows virtual size; ls -sh shows actual disk space used)
+          ls -lh disk.raw
+          ls -sh disk.raw
+
+      - name: Convert RAW Disk to Hyper-V VHDX
+        run: |
+          # 5. Run qemu-img natively on the seekable, tiny sparse file
+          qemu-img convert -f raw -O vhdx -o subformat=dynamic disk.raw debian-12-azure-arm64-20260722-2547.vhdx
+          
+          # 6. Delete the raw file right after conversion
+          rm disk.raw
+          
+          # 7. Confirm your finished dynamic VHDX file size
+          ls -lh debian-12-azure-arm64-20260722-2547.vhdx
           
       - name: Download and Extract Debian ARM64 Tarball
         if: false
