@@ -75,7 +75,17 @@ jobs:
           
           # Execute via $ROOTCMD using the absolute path
           $ROOTCMD grub-mkdevicemap --no-floppy
-          $ROOTCMD grub-install --target=arm64-efi --no-nvram --removable --efi-directory=/boot/efi  --modules="part_gpt part_msdos iso9660 udf search normal test linux configfile boot ls echo cat fat efi_gop efi_gop" --recheck
+          
+          # $ROOTCMD grub-install --target=arm64-efi --no-nvram --removable --efi-directory=/boot/efi  --modules="part_gpt part_msdos iso9660 udf search normal test linux configfile boot ls echo cat fat efi_gop efi_gop" --recheck
+          # Generate a standalone EFI boot file without probing any hardware/loop devices
+          $ROOTCMD mkdir -p  /boot/efi/EFI/BOOT/
+          $ROOTCMD grub-mkimage -o /boot/efi/EFI/BOOT/BOOTAA64.EFI -O arm64-efi part_gpt part_msdos iso9660 udf search normal test linux configfile boot ls echo cat fat efi_gop efi_gop
+
+          echo "::group::check hardcoded path"
+          $ROOTCMD strings /boot/efi/EFI/BOOT/bootaa64.efi | grep -E "EFI/"
+          echo "::endgroup::"
+
+          $ROOTCMD mkdir -p /boot/efi/EFI/debian
           # $ROOTCMD grub-mkconfig -o /boot/efi/EFI/debian/grub.cfg
 
           # 1. Dynamically find the block device mounted at the root (/) 
