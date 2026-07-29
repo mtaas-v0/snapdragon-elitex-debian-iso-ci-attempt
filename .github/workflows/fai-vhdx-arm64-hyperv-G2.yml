@@ -52,6 +52,7 @@ jobs:
           EOF
 
       - name: grub setup
+        if: false
         run: |
           cat << 'EOF' | tr -d '\r' > fai-config/scripts/UEFI/10-setup-bootloader
           #!/bin/bash
@@ -74,7 +75,7 @@ jobs:
           
           # Execute via $ROOTCMD using the absolute path
           $ROOTCMD grub-mkdevicemap --no-floppy
-          $ROOTCMD grub-install --target=arm64-efi --no-nvram --removable --efi-directory=/boot/efi
+          $ROOTCMD grub-install --target=arm64-efi --no-nvram --removable --efi-directory=/boot/efi  --modules="part_gpt part_msdos iso9660 udf search normal test linux configfile boot ls echo cat fat efi_gop efi_gop" --recheck
           $ROOTCMD grub-mkconfig -o /boot/efi/EFI/debian/grub.cfg
           EOF
 
@@ -180,7 +181,7 @@ jobs:
             fai-diskimage \
             --verbose \
             --size 10G \
-            --class DEFAULT,DEBIAN,ARM64,UEFI,CLOUD,HYPERV_GEN2 \
+            --class DEFAULT,DEBIAN,ARM64,UEFI,CLOUD,HYPERV_GEN2,GRUB_PC  \
             -s file://${{ github.workspace }}/fai-config \
             output-arm64-gen2.vhdx
           echo "::endgroup::"
