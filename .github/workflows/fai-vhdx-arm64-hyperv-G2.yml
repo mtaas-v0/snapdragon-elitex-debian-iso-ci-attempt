@@ -47,6 +47,7 @@ jobs:
           cloud-initramfs-growroot
           openssh-server
           grub-efi-arm64
+          grub2-common
           # grub-efi-arm64-bin
           EOF
 
