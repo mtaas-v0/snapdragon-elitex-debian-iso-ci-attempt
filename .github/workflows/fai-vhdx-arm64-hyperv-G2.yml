@@ -82,14 +82,15 @@ jobs:
           echo "=== RUNNING HEADLESS REMOVABLE GRUB INSTALLATION ==="
           echo "FAI_ROOT: $FAI_ROOT"
           # Execute the bootloader compilation safely inside the isolated target paths
-          chroot $FAI_ROOT grub-install \
+          command -v grub-install
+          chroot $FAI_ROOT $(command -v grub-install) \
             --target=arm64-efi \
             --no-nvram \
             --removable \
             --efi-directory=/boot/efi
           
           # Compile the final menu config mapping out the dynamic drive UUIDs
-          chroot $FAI_ROOT grub-mkconfig -o /boot/grub/grub.cfg
+          chroot $FAI_ROOT $(command -v grub-mkconfig) -o /boot/grub/grub.cfg
                     
           # ==========================================
           # EFI CONTENT CHECK: Confirm files are written
