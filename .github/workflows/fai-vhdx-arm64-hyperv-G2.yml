@@ -79,7 +79,7 @@ jobs:
           # $ROOTCMD grub-install --target=arm64-efi --no-nvram --removable --efi-directory=/boot/efi  --modules="part_gpt part_msdos iso9660 udf search normal test linux configfile boot ls echo cat fat efi_gop efi_gop" --recheck
           # Generate a standalone EFI boot file without probing any hardware/loop devices
           $ROOTCMD mkdir -p  /boot/efi/EFI/BOOT/
-          $ROOTCMD grub-mkimage  -p /EFI/debian -o /boot/efi/EFI/BOOT/BOOTAA64.EFI -O arm64-efi part_gpt ext2 part_msdos iso9660 udf search normal test linux configfile boot ls echo cat fat efi_gop efi_gop
+          $ROOTCMD grub-mkimage  -p /EFI/debian -o /boot/efi/EFI/BOOT/BOOTAA64.EFI -O arm64-efi part_gpt ext2 part_msdos iso9660 udf search normal test linux configfile boot ls echo cat fat efi_gop efi_gop regexp
 
           echo "::group::check hardcoded path"
           strings $target/boot/efi/EFI/BOOT/bootaa64.efi | grep -E "EFI/"
@@ -97,17 +97,22 @@ jobs:
           echo "ROOT_UUID=$ROOT_UUID"
 
           $ROOTCMD tee /boot/efi/EFI/debian/grub.cfg <<'GEOF' > /dev/null
+          # 1. Load your prerequisites
           insmod part_gpt
           insmod ext2
+          insmod regexp
+
           set linux_gfx_mode=keep
           
-          # Option A: Debian Hyper-V
-          menuentry "Debian Hyper-V" {
-              linux /boot/vmlinuz-7.1.5+deb14-cloud-arm64 root=UUID=${ROOT_UUID} ro quiet splash
-              initrd /boot/initrd.img-7.1.5+deb14-cloud-arm64
+          # 2. Search directly for the unique partition ID (Replace with your actual UUID)
+          search --no-floppy --fs-uuid --set=root ${ROOT_UUID}
+          
+          menuentry "Automated Debian Boot" {
+              # GRUB *does* allow wildcards on the linux/initrd lines if 'regexp' is loaded!
+              linux /boot/vmlinuz-* root=UUID=${ROOT_UUID} ro quiet
+              initrd /boot/initrd.img-*
               # devicetree /boot/dtbs/x1e80100-asus-vivobook-s15.dtb
           }
-
           GEOF
           
           EOF
