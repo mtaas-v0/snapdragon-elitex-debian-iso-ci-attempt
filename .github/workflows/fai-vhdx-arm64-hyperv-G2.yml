@@ -79,7 +79,7 @@ jobs:
           # $ROOTCMD grub-install --target=arm64-efi --no-nvram --removable --efi-directory=/boot/efi  --modules="part_gpt part_msdos iso9660 udf search normal test linux configfile boot ls echo cat fat efi_gop efi_gop" --recheck
           # Generate a standalone EFI boot file without probing any hardware/loop devices
           $ROOTCMD mkdir -p  /boot/efi/EFI/BOOT/
-          $ROOTCMD grub-mkimage  -p /EFI/debian -o /boot/efi/EFI/BOOT/BOOTAA64.EFI -O arm64-efi part_gpt part_msdos iso9660 udf search normal test linux configfile boot ls echo cat fat efi_gop efi_gop
+          $ROOTCMD grub-mkimage  -p /EFI/debian -o /boot/efi/EFI/BOOT/BOOTAA64.EFI -O arm64-efi part_gpt ext2 part_msdos iso9660 udf search normal test linux configfile boot ls echo cat fat efi_gop efi_gop
 
           echo "::group::check hardcoded path"
           strings $target/boot/efi/EFI/BOOT/bootaa64.efi | grep -E "EFI/"
