@@ -46,8 +46,8 @@ jobs:
           cloud-init
           cloud-initramfs-growroot
           openssh-server
-          # grub-efi-arm64
-          grub-efi-arm64-bin
+          grub-efi-arm64
+          # grub-efi-arm64-bin
           EOF
 
           # 5. Create a robust hook to populate the UEFI ARM64 GRUB binary
@@ -72,6 +72,7 @@ jobs:
           mount --bind /sys  $FAI_ROOT/sys
           
           echo "=== RUNNING HEADLESS REMOVABLE GRUB INSTALLATION ==="
+          echo "FAI_ROOT: $FAI_ROOT"
           # Execute the bootloader compilation safely inside the isolated target paths
           chroot $FAI_ROOT grub-install \
             --target=arm64-efi \
